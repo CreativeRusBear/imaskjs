@@ -7,21 +7,22 @@ import type Masked from '../masked/base.js';
 import {type Mask} from '../masked/base.js';
 import MaskElement from './mask-element.js';
 import HTMLMaskElement from './html-mask-element.js';
+import IMask from "../imask";
 
 
 /** Listens to element events and controls changes between element and {@link Masked} */
 export default
 class InputMask {
   /**
-    View element
-    @readonly
-  */
+   View element
+   @readonly
+   */
   el: MaskElement;
 
   /**
-    Internal {@link Masked} model
-    @readonly
-  */
+   Internal {@link Masked} model
+   @readonly
+   */
   masked: Masked<*>;
   alignCursor: () => void;
   alignCursorFriendly: () => void;
@@ -39,18 +40,68 @@ class InputMask {
   _cursorChanging: TimeoutID;
 
   /**
-    @param {MaskElement|HTMLInputElement|HTMLTextAreaElement} el
-    @param {Object} opts
-  */
+   @param {MaskElement|HTMLInputElement|HTMLTextAreaElement} el
+   @param {Object} opts
+   */
   constructor (el: MaskElement | HTMLTextAreaElement | HTMLInputElement, opts: {[string]: any}) {
     this.el = (el instanceof MaskElement) ?
-      el :
-      new HTMLMaskElement(el);
+        el :
+        new HTMLMaskElement(el);
     this.masked = createMask(opts);
+    this.firstInputMask = true;
+
+
+    //get mask, than you set as 'mask' in script
+    if (this.firstInputMask)
+    {
+      if (this.masked.constructor === IMask.MaskedNumber)
+      {
+        this.mainMask = {
+          max: this.masked.max,
+          min: this.masked.min
+        };
+      }
+      else if (this.masked.constructor === IMask.MaskedPattern)
+      {
+        this.mainMask = this.masked.mask;
+        this._changeCharsOfMask();
+      }
+      else if (this.masked.constructor === IMask.MaskedRange)
+      {
+        this.mainMask = {
+          to: this.masked.to,
+          from: this.masked.from,
+          maxLength: this.masked.maxLength
+        }
+      }
+      else if (this.masked.constructor === IMask.MaskedEnum)
+      {
+
+      }
+      else if (this.masked.constructor === IMask.MaskedDate)
+      {
+
+      }
+      else if (this.masked.constructor === IMask.MaskedRegExp)
+      {
+
+      }
+      else if (this.masked.constructor === IMask.MaskedFunction)
+      {
+
+      }
+      else if (this.masked.constructor === IMask.MaskedDynamic)
+      {
+
+      }
+      this.firstInputMask=false;
+    }
+
 
     this._listeners = {};
     this._value = '';
     this._unmaskedValue = '';
+
 
     this._saveSelection = this._saveSelection.bind(this);
     this._onInput = this._onInput.bind(this);
@@ -65,6 +116,11 @@ class InputMask {
     // refresh
     this.updateValue();
     this._onChange();
+
+    //using for correct work
+    String.prototype.replaceAt = function (index, replacement) {
+      return ${this.substr(0, index)}${replacement}${this.substr(index + replacement.length)};
+    };
   }
 
   /** Read or update mask */
@@ -74,8 +130,8 @@ class InputMask {
 
   set mask (mask: Mask) {
     if (mask == null ||
-      mask === this.masked.mask ||
-      mask === Date && this.masked instanceof MaskedDate) return;
+        mask === this.masked.mask ||
+        mask === Date && this.masked instanceof MaskedDate) return;
 
     if (this.masked.constructor === maskedClass(mask)) {
       this.masked.updateOptions({mask});
@@ -84,6 +140,7 @@ class InputMask {
 
     const masked = createMask({mask});
     masked.unmaskedValue = this.masked.unmaskedValue;
+
     this.masked = masked;
   }
 
@@ -93,11 +150,9 @@ class InputMask {
   }
 
   set value (str: string) {
-    this.masked.value = str;
-    this.updateControl();
+    this._changeMaskAndValue(str);
     this.alignCursor();
   }
-
   /** Unmasked value */
   get unmaskedValue (): string {
     return this._unmaskedValue;
@@ -121,9 +176,9 @@ class InputMask {
   }
 
   /**
-    Starts listening to element events
-    @protected
-  */
+   Starts listening to element events
+   @protected
+   */
   _bindEvents () {
     this.el.bindEvents({
       selectionChange: this._saveSelection,
@@ -136,16 +191,16 @@ class InputMask {
   }
 
   /**
-    Stops listening to element events
-    @protected
+   Stops listening to element events
+   @protected
    */
   _unbindEvents () {
     this.el.unbindEvents();
   }
 
   /**
-    Fires custom event
-    @protected
+   Fires custom event
+   @protected
    */
   _fireEvent (ev: string) {
     const listeners = this._listeners[ev];
@@ -155,22 +210,22 @@ class InputMask {
   }
 
   /**
-    Current selection start
-    @readonly
-  */
+   Current selection start
+   @readonly
+   */
   get selectionStart (): number {
     return this._cursorChanging ?
-      this._changingCursorPos :
+        this._changingCursorPos :
 
-      this.el.selectionStart;
+        this.el.selectionStart;
   }
 
   /** Current cursor position */
   get cursorPos (): number {
     return this._cursorChanging ?
-      this._changingCursorPos :
+        this._changingCursorPos :
 
-      this.el.selectionEnd;
+        this.el.selectionEnd;
   }
   set cursorPos (pos: number) {
     if (!this.el.isActive) return;
@@ -180,17 +235,108 @@ class InputMask {
   }
 
   /**
-    Stores current selection
-    @protected
-  */
-  _saveSelection (/* ev */) {
+   Stores current selection
+   @protected
+   */
+  _saveSelection () {
     if (this.value !== this.el.value) {
-      console.warn('Element value was changed outside of mask. Syncronize mask using `mask.updateValue()` to work properly.'); // eslint-disable-line no-console
+      console.warn('Element value was changed outside of mask. Syncronize mask using mask.updateValue() to work properly.'); // eslint-disable-line no-console
     }
+    //if you click backspace and current value bigger than current mask
+    this._changeMaskAndValue(this.unmaskedValue);
+
     this._selection = {
       start: this.selectionStart,
       end: this.cursorPos
     };
+  }
+
+  /** This method using for manipulating with mask (only work, if soft property equal true)*/
+  _changeMaskAndValue(val){
+    if (this.masked.soft && val)
+    {
+      //for number mask
+      if (this.masked.constructor === IMask.MaskedNumber)
+      {
+        if (this.masked.max < this.mainMask.max || this.masked.min > this.mainMask.min)
+        {
+          this.masked.max = this.mainMask.max;
+          this.masked.min = this.mainMask.min;
+        }
+        else (isNaN(Number(val))) ? this._changeType(val) : ((Number(val) >= 0) ? this.masked.max = Number(val) : this.masked.min = Number(val));
+      }else
+
+      //for pattern mask
+      if (this.masked.constructor === IMask.MaskedPattern)
+      {
+        if (this.mainMask.match(/[0\a\*]/g).length <= val.length)
+        {
+          const maxLengthMask = this.masked.mask.match(/[0\a\*]/g).length;
+          const needNewSymbols = val.length - maxLengthMask;
+          for (let i = 0; i < needNewSymbols; i++)
+          {
+            this.masked.mask += '*';
+          }
+          if (needNewSymbols < 0) this.masked.mask = this.masked.mask.slice(0, needNewSymbols);
+        }
+        else
+        {
+          this.masked.mask = this.masked.mask.substr(0, this.mainMask.length);
+          let startIndex = this.masked.value.indexOf(this.masked.placeholderChar);
+          if (startIndex>0) {
+            for (let i = startIndex, length = this.mainMask.length; i < length; i++) {
+              this.masked.mask = this.masked.mask.replaceAt(i, this.mainMask[i]);
+            }
+          }
+
+          // check the value on valid every time, when we delete characters.
+          // if condition return true, set the original mask
+          if (this.prevTypeState){
+            this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
+            if (Number(this.masked.value) <= this.prevTypeState.max && Number(this.masked.value) >= this.prevTypeState.min)
+            {
+              this.masked = this.prevTypeState;
+              this.mainMask = {
+                max: this.masked.max,
+                min: this.masked.min
+              };
+              delete this.prevTypeState;
+            }
+          }
+        }
+      }
+
+      //for range mask
+      if (this.masked.constructor === IMask.MaskedRange)
+      {
+      }
+
+      this.masked._update(this.masked);
+    }
+    this.masked.value = val;
+    this.updateControl();
+  }
+
+  /** Change current type, cause it doesn't  view current value
+   Now it use for some cases with number type mask
+   */
+  _changeType(val){
+    this.prevTypeState = this.masked;
+    let newMask='';
+    for(let i = 0, length = val.length; i < length; i ++) { newMask+='*'; }
+    this.mainMask = newMask;
+    this.masked = createMask({mask: newMask, soft: true});
+  }
+
+  /** Change current mask (use, when soft: true) */
+  _changeCharsOfMask(){
+    if (this.masked.soft) {
+      let newMask='';
+      for (let i=0, length = this.masked.mask.length; i < length; i ++){
+        (this.masked.mask[i] === 'a' || this.masked.mask[i] === '0' || this.masked.mask[i] === '*') ? newMask+='*' : newMask+=this.masked.mask[i];
+      }
+      this.masked.mask=newMask;
+    }
   }
 
   /** Syncronizes model value from view */
@@ -204,7 +350,7 @@ class InputMask {
     const newUnmaskedValue = this.masked.unmaskedValue;
     const newValue = this.masked.value;
     const isChanged = (this.unmaskedValue !== newUnmaskedValue ||
-      this.value !== newValue);
+        this.value !== newValue);
 
     this._unmaskedValue = newUnmaskedValue;
     this._value = newValue;
@@ -233,9 +379,9 @@ class InputMask {
   }
 
   /**
-    Delays cursor update to support mobile browsers
-    @private
-  */
+   Delays cursor update to support mobile browsers
+   @private
+   */
   _delayUpdateCursor (cursorPos: number) {
     this._abortUpdateCursor();
     this._changingCursorPos = cursorPos;
@@ -247,18 +393,18 @@ class InputMask {
   }
 
   /**
-    Fires custom events
-    @protected
-  */
+   Fires custom events
+   @protected
+   */
   _fireChangeEvents () {
     this._fireEvent('accept');
     if (this.masked.isComplete) this._fireEvent('complete');
   }
 
   /**
-    Aborts delayed cursor update
-    @private
-  */
+   Aborts delayed cursor update
+   @private
+   */
   _abortUpdateCursor () {
     if (this._cursorChanging) {
       clearTimeout(this._cursorChanging);
@@ -299,33 +445,34 @@ class InputMask {
   /** Handles view input event */
   _onInput () {
     this._abortUpdateCursor();
-
     // fix strange IE behavior
     if (!this._selection) return this.updateValue();
 
     const details = new ActionDetails(
-      // new state
-      this.el.value, this.cursorPos,
-      // old state
-      this.value, this._selection);
+        // new state
+        this.el.value, this.cursorPos,
+        // old state
+        this.value, this._selection);
 
-    const oldRawValue = this.masked.rawInputValue;
+    let oldRawValue = this.masked.rawInputValue;
 
     const offset = this.masked.splice(
-      details.startChangePos,
-      details.removed.length,
-      details.inserted,
-      details.removeDirection).offset;
+        details.startChangePos,
+        details.removed.length,
+        details.inserted,
+        details.removeDirection).offset;
 
+
+    // if(this.masked.soft) oldRawValue=details.value;
     // force align in remove direction only if no input chars were removed
     // otherwise we still need to align with NONE (to get out from fixed symbols for instance)
     const removeDirection = oldRawValue === this.masked.rawInputValue ?
-      details.removeDirection :
-      DIRECTION.NONE;
+        details.removeDirection :
+        DIRECTION.NONE;
 
     const cursorPos = this.masked.nearestInputPos(
-      details.startChangePos + offset,
-      removeDirection,
+        details.startChangePos + offset,
+        removeDirection,
     );
 
     this.updateControl();
