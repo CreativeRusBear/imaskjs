@@ -12,8 +12,8 @@ class HTMLMaskElement extends MaskElement {
   _handlers: {[string]: Function};
 
   /**
-    @param {HTMLInputElement|HTMLTextAreaElement} input
-  */
+   @param {HTMLInputElement|HTMLTextAreaElement} input
+   */
   constructor (input: HTMLTextAreaElement | HTMLInputElement) {
     super();
     this.input = input;
@@ -21,41 +21,41 @@ class HTMLMaskElement extends MaskElement {
   }
 
   /**
-    Is element in focus
-    @readonly
-  */
+   Is element in focus
+   @readonly
+   */
   get isActive (): boolean {
     return this.input === document.activeElement;
   }
 
   /**
-    Returns HTMLElement selection start
-    @override
-  */
+   Returns HTMLElement selection start
+   @override
+   */
   get _unsafeSelectionStart (): number {
     return this.input.selectionStart;
   }
 
   /**
-    Returns HTMLElement selection end
-    @override
-  */
+   Returns HTMLElement selection end
+   @override
+   */
   get _unsafeSelectionEnd (): number {
     return this.input.selectionEnd;
   }
 
   /**
-    Sets HTMLElement selection
-    @override
-  */
+   Sets HTMLElement selection
+   @override
+   */
   _unsafeSelect (start: number, end: number) {
     this.input.setSelectionRange(start, end);
   }
 
   /**
-    HTMLElement value
-    @override
-  */
+   HTMLElement value
+   @override
+   */
   get value (): string {
     return this.input.value;
   }
@@ -64,21 +64,21 @@ class HTMLMaskElement extends MaskElement {
   }
 
   /**
-    Binds HTMLElement events to mask internal events
-    @override
-  */
+   Binds HTMLElement events to mask internal events
+   @override
+   */
   bindEvents (handlers: {[ElementEvent]: Function}) {
     Object.keys(handlers)
-      .forEach(event => this._toggleEventHandler(HTMLMaskElement.EVENTS_MAP[event], handlers[event]));
+        .forEach(event => this._toggleEventHandler(HTMLMaskElement.EVENTS_MAP[event], handlers[event]));
   }
 
   /**
-    Unbinds HTMLElement events to mask internal events
-    @override
-  */
+   Unbinds HTMLElement events to mask internal events
+   @override
+   */
   unbindEvents () {
     Object.keys(this._handlers)
-      .forEach(event => this._toggleEventHandler(event));
+        .forEach(event => this._toggleEventHandler(event));
   }
 
   /** */
