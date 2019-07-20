@@ -46,6 +46,7 @@ type MaskedOptions<MaskType> = {
   validate?: $PropertyType<Masked<MaskType>, 'validate'>,
   commit?: $PropertyType<Masked<MaskType>, 'commit'>,
   overwrite?: $PropertyType<Masked<MaskType>, 'overwrite'>,
+  soft?: $PropertyType<Masked<MaskType>, 'soft'>,
 };
 
 
@@ -66,6 +67,8 @@ class Masked<MaskType> {
   commit: (string, Masked<MaskType>) => void;
   /** Enable characters overwriting */
   overwrite: ?boolean;
+  /** Makes it possible to flexibly display data regardless of mask*/
+  soft: boolean;
   /** */
   isInitialized: boolean;
   _value: string;
