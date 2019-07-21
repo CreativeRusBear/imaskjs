@@ -7,7 +7,6 @@ import type Masked from '../masked/base.js';
 import {type Mask} from '../masked/base.js';
 import MaskElement from './mask-element.js';
 import HTMLMaskElement from './html-mask-element.js';
-import IMask from "../imask";
 
 
 /** Listens to element events and controls changes between element and {@link Masked} */
@@ -282,7 +281,6 @@ class InputMask {
       }
 
     } else {
-
       this.masked.mask = this.masked.mask.substr(0, this.mainMask.length);
       let startIndex = this.masked.value.indexOf(this.masked.placeholderChar);
       if (startIndex > 0) {
@@ -290,18 +288,19 @@ class InputMask {
           this.masked.mask = this.masked.mask.replaceAt(i, this.mainMask[i]);
         }
       }
-
-      // check the value on valid every time, when we delete characters.
-      // if condition return true, set the original mask
-      if (this.prevOptions) {
-        this._returnOriginalMask();
-      }
+    }
+    // check the value on valid every time, when we delete characters.
+    // if condition return true, set the original mask
+    if (this.prevOptions) {
+      this._returnOriginalMask();
     }
   }
 
   /** Method that returns the original mask*/
   _returnOriginalMask(){
-    this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
+    //TODO: fix bug
+
+    // this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
     if (Number(this.masked.value) <= this.prevOptions.max && Number(this.masked.value) >= this.prevOptions.min) {
       this.masked = createMask(this.prevOptions);
       this.mainMask = {
