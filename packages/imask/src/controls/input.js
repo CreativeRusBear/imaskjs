@@ -331,11 +331,12 @@ class InputMask {
   /** Change current mask (use, when soft: true) */
   _changeCharsOfMask(){
     if (this.masked.soft) {
-      let newMask='';
+      let newMask = '';
+      const charsForMask = ['a', '0', '*'];
       for (let i=0, length = this.masked.mask.length; i < length; i ++){
-        (this.masked.mask[i] === 'a' || this.masked.mask[i] === '0' || this.masked.mask[i] === '*') ? newMask+='*' : newMask+=this.masked.mask[i];
+        (charsForMask.includes(this.masked.mask[i])) ? newMask+='*' : newMask+=this.masked.mask[i];
       }
-      this.masked.mask=newMask;
+      this.masked.mask = newMask;
     }
   }
 
