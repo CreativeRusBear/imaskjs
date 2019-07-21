@@ -48,60 +48,13 @@ class InputMask {
         el :
         new HTMLMaskElement(el);
     this.masked = createMask(opts);
-    this.firstInputMask = true;
-
 
     //get mask, than you set as 'mask' in script
-    if (this.firstInputMask)
-    {
-      if (this.masked.constructor === IMask.MaskedNumber)
-      {
-        this.mainMask = {
-          max: this.masked.max,
-          min: this.masked.min
-        };
-      }
-      else if (this.masked.constructor === IMask.MaskedPattern)
-      {
-        this.mainMask = this.masked.mask;
-        this._changeCharsOfMask();
-      }
-      else if (this.masked.constructor === IMask.MaskedRange)
-      {
-        this.mainMask = {
-          to: this.masked.to,
-          from: this.masked.from,
-          maxLength: this.masked.maxLength
-        }
-      }
-      else if (this.masked.constructor === IMask.MaskedEnum)
-      {
-
-      }
-      else if (this.masked.constructor === IMask.MaskedDate)
-      {
-
-      }
-      else if (this.masked.constructor === IMask.MaskedRegExp)
-      {
-
-      }
-      else if (this.masked.constructor === IMask.MaskedFunction)
-      {
-
-      }
-      else if (this.masked.constructor === IMask.MaskedDynamic)
-      {
-
-      }
-      this.firstInputMask=false;
-    }
-
+    this._findTypeOfMaskThatUsed();
 
     this._listeners = {};
     this._value = '';
     this._unmaskedValue = '';
-
 
     this._saveSelection = this._saveSelection.bind(this);
     this._onInput = this._onInput.bind(this);
@@ -122,6 +75,42 @@ class InputMask {
       return `${this.substr(0, index)}${replacement}${this.substr(index + replacement.length)}`;
     };
   }
+
+  /** Get mask, than you set as 'mask' in script */
+  _findTypeOfMaskThatUsed(){
+    if (this.masked.constructor === IMask.MaskedNumber) {
+
+      this.mainMask = {
+        max: this.masked.max,
+        min: this.masked.min
+      };
+
+    } else if (this.masked.constructor === IMask.MaskedPattern) {
+
+      this.mainMask = this.masked.mask;
+      this._changeCharsOfMask();
+
+    } else if (this.masked.constructor === IMask.MaskedRange) {
+
+      this.mainMask = {
+        to: this.masked.to,
+        from: this.masked.from,
+        maxLength: this.masked.maxLength
+      }
+
+    } else if (this.masked.constructor === IMask.MaskedEnum) {
+
+    } else if (this.masked.constructor === IMask.MaskedDate) {
+
+    } else if (this.masked.constructor === IMask.MaskedRegExp) {
+
+    } else if (this.masked.constructor === IMask.MaskedFunction) {
+
+    } else if (this.masked.constructor === IMask.MaskedDynamic) {
+
+    }
+  }
+
 
   /** Read or update mask */
   get mask (): Mask {
@@ -253,68 +242,74 @@ class InputMask {
 
   /** This method using for manipulating with mask (only work, if soft property equal true)*/
   _changeMaskAndValue(val){
-    if (this.masked.soft && val)
-    {
-      //for number mask
-      if (this.masked.constructor === IMask.MaskedNumber)
-      {
-        if (this.masked.max < this.mainMask.max || this.masked.min > this.mainMask.min)
-        {
-          this.masked.max = this.mainMask.max;
-          this.masked.min = this.mainMask.min;
-        }
-        else (isNaN(Number(val))) ? this._changeType(val) : ((Number(val) >= 0) ? this.masked.max = Number(val) : this.masked.min = Number(val));
-      }else
-
-      //for pattern mask
-      if (this.masked.constructor === IMask.MaskedPattern)
-      {
-        if (this.mainMask.match(/[0\a\*]/g).length <= val.length)
-        {
-          const maxLengthMask = this.masked.mask.match(/[0\a\*]/g).length;
-          const needNewSymbols = val.length - maxLengthMask;
-          for (let i = 0; i < needNewSymbols; i++)
-          {
-            this.masked.mask += '*';
-          }
-          if (needNewSymbols < 0) this.masked.mask = this.masked.mask.slice(0, needNewSymbols);
-        }
-        else
-        {
-          this.masked.mask = this.masked.mask.substr(0, this.mainMask.length);
-          let startIndex = this.masked.value.indexOf(this.masked.placeholderChar);
-          if (startIndex>0) {
-            for (let i = startIndex, length = this.mainMask.length; i < length; i++) {
-              this.masked.mask = this.masked.mask.replaceAt(i, this.mainMask[i]);
-            }
-          }
-
-          // check the value on valid every time, when we delete characters.
-          // if condition return true, set the original mask
-          if (this.prevTypeState){
-            this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
-            if (Number(this.masked.value) <= this.prevTypeState.max && Number(this.masked.value) >= this.prevTypeState.min)
-            {
-              this.masked = this.prevTypeState;
-              this.mainMask = {
-                max: this.masked.max,
-                min: this.masked.min
-              };
-              delete this.prevTypeState;
-            }
-          }
-        }
-      }
-
-      //for range mask
-      if (this.masked.constructor === IMask.MaskedRange)
-      {
-      }
-
+    if (this.masked.soft && val) {
+      this._findNecessaryMaskForAddChange(val);
       this.masked._update(this.masked);
     }
     this.masked.value = val;
     this.updateControl();
+  }
+
+  /** This method use for change current mask and value*/
+  _findNecessaryMaskForAddChange(val){
+    if (this.masked.constructor === IMask.MaskedNumber) {
+      this._changeDataForMaskedNumber(val);
+    } else if (this.masked.constructor === IMask.MaskedPattern) {
+      this._changeDataForMaskedPattern(val);
+    } else if (this.masked.constructor === IMask.MaskedRange) {
+    }
+  }
+
+  /** Change mask and value if current mask equal MaskedNumber*/
+  _changeDataForMaskedNumber(val){
+    if (this.masked.max < this.mainMask.max || this.masked.min > this.mainMask.min) {
+      this.masked.max = this.mainMask.max;
+      this.masked.min = this.mainMask.min;
+    } else (isNaN(Number(val))) ? this._changeType(val) : ((Number(val) >= 0) ? this.masked.max = Number(val) : this.masked.min = Number(val));
+  }
+
+  /** Change mask and value if current mask equal MaskedPattern*/
+  _changeDataForMaskedPattern(val){
+    if (this.mainMask.match(/[0\a\*]/g).length <= val.length) {
+
+      const maxLengthMask = this.masked.mask.match(/[0\a\*]/g).length;
+      const needNewSymbols = val.length - maxLengthMask;
+      for (let i = 0; i < needNewSymbols; i++) {
+        this.masked.mask += '*';
+      }
+      if (needNewSymbols < 0) {
+        this.masked.mask = this.masked.mask.slice(0, needNewSymbols);
+      }
+
+    } else {
+
+      this.masked.mask = this.masked.mask.substr(0, this.mainMask.length);
+      let startIndex = this.masked.value.indexOf(this.masked.placeholderChar);
+      if (startIndex > 0) {
+        for (let i = startIndex, length = this.mainMask.length; i < length; i++) {
+          this.masked.mask = this.masked.mask.replaceAt(i, this.mainMask[i]);
+        }
+      }
+
+      // check the value on valid every time, when we delete characters.
+      // if condition return true, set the original mask
+      if (this.prevTypeState) {
+        this._returnOriginalMask();
+      }
+    }
+  }
+
+  /** Method that returns the original mask*/
+  _returnOriginalMask(){
+    this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
+    if (Number(this.masked.value) <= this.prevTypeState.max && Number(this.masked.value) >= this.prevTypeState.min) {
+      this.masked = this.prevTypeState;
+      this.mainMask = {
+        max: this.masked.max,
+        min: this.masked.min
+      };
+      delete this.prevTypeState;
+    }
   }
 
   /** Change current type, cause it doesn't  view current value
@@ -323,7 +318,9 @@ class InputMask {
   _changeType(val){
     this.prevTypeState = this.masked;
     let newMask='';
-    for(let i = 0, length = val.length; i < length; i ++) { newMask+='*'; }
+    for(let i = 0, length = val.length; i < length; i ++) {
+      newMask+='*';
+    }
     this.mainMask = newMask;
     this.masked = createMask({mask: newMask, soft: true});
   }
