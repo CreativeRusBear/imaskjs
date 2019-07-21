@@ -243,10 +243,15 @@ class InputMask {
   _changeMaskAndValue(val){
     if (this.masked.soft && val) {
       this._findNecessaryMaskForAddChange(val);
-      this.masked._update(this.masked);
     }
     this.masked.value = val;
     this.updateControl();
+
+    //solution for number mask
+    if (this.masked.max) {
+      this.masked.max = this.mainMask.max;
+      this.masked.min = this.mainMask.min;
+    }
   }
 
   /** This method use for change current mask and value*/
@@ -298,7 +303,7 @@ class InputMask {
 
   /** Method that returns the original mask*/
   _returnOriginalMask(){
-    //TODO: fix bug
+    //TODO: fix bug - success. solution on line 251
 
     // this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
     if (Number(this.masked.value) <= this.prevOptions.max && Number(this.masked.value) >= this.prevOptions.min) {
