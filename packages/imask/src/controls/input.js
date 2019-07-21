@@ -293,7 +293,7 @@ class InputMask {
 
       // check the value on valid every time, when we delete characters.
       // if condition return true, set the original mask
-      if (this.prevTypeState) {
+      if (this.prevOptions) {
         this._returnOriginalMask();
       }
     }
@@ -302,13 +302,13 @@ class InputMask {
   /** Method that returns the original mask*/
   _returnOriginalMask(){
     this.masked.mask = this.masked.mask.substr(0, this.masked.value.length);
-    if (Number(this.masked.value) <= this.prevTypeState.max && Number(this.masked.value) >= this.prevTypeState.min) {
-      this.masked = this.prevTypeState;
+    if (Number(this.masked.value) <= this.prevOptions.max && Number(this.masked.value) >= this.prevOptions.min) {
+      this.masked = createMask(this.prevOptions);
       this.mainMask = {
         max: this.masked.max,
         min: this.masked.min
       };
-      delete this.prevTypeState;
+      delete this.prevOptions;
     }
   }
 
@@ -316,7 +316,7 @@ class InputMask {
    Now it use for some cases with number type mask
    */
   _changeType(val){
-    this.prevTypeState = this.masked;
+    this.prevOptions = {...this.masked};
     let newMask='';
     for(let i = 0, length = val.length; i < length; i ++) {
       newMask+='*';
